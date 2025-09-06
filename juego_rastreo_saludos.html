@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>MiniCurso de Inglés Básico</title>
+  <style>
+    body{margin:0;font-family:Inter,Arial,sans-serif;background:linear-gradient(180deg,#0f172a,#1e3a8a);color:#f8fafc;min-height:100vh;display:flex;justify-content:center;align-items:center;padding:20px}
+    .container{max-width:900px;width:100%;background:#1e293b;border-radius:16px;padding:24px;box-shadow:0 8px 20px rgba(0,0,0,0.5)}
+    h1{font-size:26px;margin-bottom:10px}
+    p.lead{color:#94a3b8;margin-top:0}
+    .lesson{margin-top:20px;padding:20px;background:#0f172a;border-radius:14px;box-shadow:0 4px 14px rgba(0,0,0,0.4);border:1px solid #334155}
+    .question{font-size:20px;font-weight:600;margin-bottom:14px;text-align:center}
+    .options{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    button.option{padding:14px;border:none;border-radius:10px;background:linear-gradient(180deg,#38bdf8,#0ea5e9);color:#fff;font-weight:700;cursor:pointer;transition:transform .2s}
+    button.option:hover{transform:scale(1.05)}
+    button.option:active{transform:scale(0.97)}
+    .feedback{margin-top:14px;padding:12px;border-radius:10px;text-align:center;font-weight:700;display:none}
+    .feedback.ok{background:#064e3b;color:#bbf7d0}
+    .feedback.bad{background:#7f1d1d;color:#fecaca}
+    .actions{margin-top:20px;display:flex;justify-content:space-between;align-items:center}
+    button.restart{padding:10px 16px;border-radius:10px;border:none;background:linear-gradient(180deg,#475569,#334155);color:#fff;cursor:pointer}
+    .topics{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+    button.topic{padding:8px 14px;border:none;border-radius:8px;background:#2563eb;color:#fff;cursor:pointer;font-weight:600}
+    button.topic.active{background:#16a34a}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>MiniCurso de Inglés Básico</h1>
+    <p class="lead">Aprende inglés con actividades interactivas estilo Duolingo, divididas en temáticas.</p>
+
+    <div class="topics" id="topics"></div>
+
+    <div class="lesson">
+      <div class="question" id="question">Elige una temática para comenzar</div>
+      <div class="options" id="options"></div>
+      <div class="feedback" id="feedback"></div>
+      <div class="actions">
+        <div>Progreso: <span id="progress">0/0</span></div>
+        <button class="restart" id="btnRestart">Reiniciar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const courses = {
+      'Saludos': [
+        {q:'¿Cómo se dice "Hola" en inglés?', options:['Hello','Goodbye','Thanks','Please'], answer:'Hello'},
+        {q:'¿Cuál es un saludo formal?', options:['Hey!','What’s up?','Good morning','Yo!'], answer:'Good morning'},
+        {q:'¿Cómo se dice "Gracias" en inglés?', options:['Please','Thanks','Sorry','Bye'], answer:'Thanks'},
+        {q:'¿Qué significa "See you later"?', options:['Nos vemos luego','Gracias','Lo siento','Buenos días'], answer:'Nos vemos luego'},
+        {q:'Selecciona la frase informal:', options:['Pleased to meet you','Yo!','How do you do?','Good evening'], answer:'Yo!'}
+      ],
+      'Colores': [
+        {q:'¿Cómo se dice "Rojo" en inglés?', options:['Red','Blue','Green','Yellow'], answer:'Red'},
+        {q:'¿Cómo se dice "Azul" en inglés?', options:['Pink','Brown','Blue','Black'], answer:'Blue'},
+        {q:'Selecciona el color "Green":', options:['Rojo','Verde','Azul','Amarillo'], answer:'Verde'},
+        {q:'¿Cuál es "Black"?', options:['Negro','Blanco','Marrón','Gris'], answer:'Negro'}
+      ],
+      'Números': [
+        {q:'¿Cómo se dice "Uno" en inglés?', options:['Two','Three','One','Four'], answer:'One'},
+        {q:'¿Cómo se dice "Cinco" en inglés?', options:['Five','Seven','Six','Nine'], answer:'Five'},
+        {q:'Selecciona el número "Ten":', options:['Diez','Doce','Ocho','Once'], answer:'Diez'},
+        {q:'¿Cuál es "Eight"?', options:['Seis','Siete','Ocho','Nueve'], answer:'Ocho'}
+      ],
+      'Presentaciones': [
+        {q:'¿Cómo se dice "Me llamo..." en inglés?', options:['My name is...','I am from...','How are you?','Nice to meet you'], answer:'My name is...'},
+        {q:'Traduce: "Encantado de conocerte"', options:['Goodbye','Nice to meet you','See you','Thanks'], answer:'Nice to meet you'},
+        {q:'¿Cuál es la respuesta apropiada a "How are you?"?', options:['I am fine','Goodbye','See you later','Thank you'], answer:'I am fine'}
+      ]
+    };
+
+    let currentCourse = null;
+    let lessons = [];
+    let index=0, correct=0;
+
+    const topicsEl=document.getElementById('topics');
+    const questionEl=document.getElementById('question');
+    const optionsEl=document.getElementById('options');
+    const feedbackEl=document.getElementById('feedback');
+    const progressEl=document.getElementById('progress');
+    const btnRestart=document.getElementById('btnRestart');
+
+    // Crear botones de temáticas
+    Object.keys(courses).forEach(topic=>{
+      const b=document.createElement('button');
+      b.className='topic';
+      b.textContent=topic;
+      b.onclick=()=>selectTopic(topic,b);
+      topicsEl.appendChild(b);
+    });
+
+    function selectTopic(topic, btn){
+      currentCourse = courses[topic];
+      lessons=[...currentCourse];
+      index=0;correct=0;
+      document.querySelectorAll('.topic').forEach(t=>t.classList.remove('active'));
+      btn.classList.add('active');
+      feedbackEl.style.display='none';
+      next();
+    }
+
+    function start(){
+      if(!currentCourse){
+        questionEl.textContent='Selecciona una temática para comenzar';
+        return;
+      }
+      index=0;correct=0;
+      feedbackEl.style.display='none';
+      next();
+    }
+
+    function next(){
+      if(index>=lessons.length){
+        questionEl.textContent=`Has terminado la temática. Respuestas correctas: ${correct}/${lessons.length}`;
+        optionsEl.innerHTML='';
+        feedbackEl.style.display='block';
+        feedbackEl.className='feedback ok';
+        feedbackEl.textContent='¡Bien hecho!';
+        progressEl.textContent=`${lessons.length}/${lessons.length}`;
+        return;
+      }
+      const l=lessons[index];
+      questionEl.textContent=l.q;
+      optionsEl.innerHTML='';
+      l.options.forEach(opt=>{
+        const b=document.createElement('button');
+        b.className='option';
+        b.textContent=opt;
+        b.onclick=()=>select(opt,l.answer);
+        optionsEl.appendChild(b);
+      });
+      progressEl.textContent=`${index}/${lessons.length}`;
+    }
+
+    function select(choice,answer){
+      feedbackEl.style.display='block';
+      if(choice===answer){
+        correct++;
+        feedbackEl.className='feedback ok';
+        feedbackEl.textContent='¡Correcto!';
+      }else{
+        feedbackEl.className='feedback bad';
+        feedbackEl.textContent=`Incorrecto. La respuesta es "${answer}".`;
+      }
+      index++;
+      setTimeout(next,1000);
+    }
+
+    btnRestart.addEventListener('click',start);
+  </script>
+</body>
+</html>
